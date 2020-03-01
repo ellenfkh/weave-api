@@ -15,11 +15,15 @@ func TestMain(m *testing.M) {
 	setupTestDir()
 
 	m.Run()
-	cleanupTestDir()
+	// cleanupTestDir()
 }
 
 func TestCat(t *testing.T) {
 	lsHandler := LsHandler{}
+	user, err := user.Current()
+	if err != nil {
+		t.Errorf("Failed to get current user")
+	}
 
 	// Should fail if we try to cat a dir
 	data, err := lsHandler.cat("./test")
@@ -32,8 +36,18 @@ func TestCat(t *testing.T) {
 	assert.Nil(t, data, "Should have cat a nonexistent file")
 
 	// Get a normal file's contents
+
 	data, err = lsHandler.cat("./test/file")
-	assert.Equal(t, []byte("test-file"), data, "Should have thrown an error, nonexiestent")
+	assert.Equal(t, "test-file", data.Contents, "Should have thrown an error, nonexiestent")
+	assert.Equal(t,
+		&fileInfo{
+			Name:        "file",
+			Permissions: os.FileMode(0644).String(),
+			Owner:       user.Name,
+			Size:        int64(len([]byte("test-file"))),
+			IsDir:       false,
+		},
+		data.Stat, "Failed to cat file")
 	assert.Nil(t, err, "Should not have thrown an error")
 }
 
@@ -71,10 +85,11 @@ func TestList(t *testing.T) {
 
 	assert.Equal(t,
 		&fileInfo{
-			name:        "nested",
-			permissions: os.FileMode(0644).String(),
-			owner:       user.Name,
-			size:        int64(len([]byte("test-dir-nested"))),
+			Name:        "nested",
+			Permissions: os.FileMode(0644).String(),
+			Owner:       user.Name,
+			Size:        int64(len([]byte("test-dir-nested"))),
+			IsDir:       false,
 		},
 		files[0],
 		"Got malformed file stats")
