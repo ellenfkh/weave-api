@@ -14,6 +14,20 @@ type LsHandler struct {
 	baseDir string
 }
 
+func NewLsHandler(baseDir string) (*LsHandler, error) {
+	fi, err := os.Lstat(baseDir)
+	if err != nil {
+		return nil, errors.New("Error mounting basedir")
+	}
+
+	if !fi.Mode().IsDir() {
+		return nil, errors.New("BaseDir is a directory")
+	}
+
+	return &LsHandler{baseDir: baseDir}, nil
+
+}
+
 // Write a 404 and log an error server-side
 func writeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusNotFound)

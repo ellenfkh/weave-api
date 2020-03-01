@@ -15,6 +15,7 @@ func TestMain(m *testing.M) {
 	setupTestDir()
 
 	m.Run()
+	// FIXME: don't clean up for now, since this is useful for testing the handler
 	// cleanupTestDir()
 }
 

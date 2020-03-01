@@ -1,27 +1,30 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+
+	"flag"
 
 	"github.com/gorilla/mux"
 )
 
-// http.Handler that just logs the path. For testing routes.
-type LogHandler struct {
-}
-
-func (l *LogHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//fmt.Fprintf(w, r.RequestURI)
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"message": "hello world"}`))
-}
-
 func main() {
-	lsHandler := &LsHandler{baseDir: "./test"}
-	//logHandler := LogHandler{}
+	var baseDir = flag.String("baseDir", "./test", "The directory to mount the ls handler")
+	var port = flag.Int("port", 8080, "The port to listen on")
+	flag.Parse()
+
+	log.Printf("Starting router with base path %s on port %d", *baseDir, *port)
+
+	lsHandler, err := NewLsHandler(*baseDir)
+	if err != nil {
+		log.Printf("Failed ot create LS handler: %v", err)
+		os.Exit(1)
+	}
+
 	router := mux.NewRouter().StrictSlash(true)
 	router.PathPrefix("/").Handler(lsHandler)
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), router))
 }
