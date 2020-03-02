@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"testing"
@@ -13,13 +11,13 @@ import (
 // Wrap tests in helper funcs to create a nice test dir, then nukeit
 func TestMain(m *testing.M) {
 	setupTestDir()
-
 	m.Run()
-	// FIXME: don't clean up for now, since this is useful for testing the handler
-	// cleanupTestDir()
+	cleanupTestDir()
 }
 
 func TestCat(t *testing.T) {
+	// We don't care about the baseDir of lsHandler -- we're only testing the fs
+	// operations, not the path handling
 	lsHandler := LsHandler{}
 	user, err := user.Current()
 	if err != nil {
@@ -53,11 +51,17 @@ func TestCat(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
+	// We don't care about the baseDir of lsHandler -- we're only testing the fs
+	// operations, not the path handling
 	lsHandler := LsHandler{}
+	user, err := user.Current()
+	if err != nil {
+		t.Errorf("Failed to get current user")
+	}
 
 	// Should get the right number of files, including dirs and hiddens
 	files, err := lsHandler.list("./test")
-	assert.Equal(t, 4, len(files),
+	assert.Equal(t, 5, len(files),
 		"Found wrong number of files in ./test")
 	assert.Nil(t, err, "Unexpected error listing ./test")
 
@@ -71,6 +75,12 @@ func TestList(t *testing.T) {
 	assert.Error(t, err, "Should have thrown an error nonexistent dir")
 	assert.Nil(t, files, "Should have failed to list nonexisting dir")
 
+	// Handle empty dirs
+	files, err = lsHandler.list("./test/empty")
+	assert.Equal(t, 0, len(files),
+		"Found wrong number of files in ./test/empty")
+	assert.Nil(t, err, "Unexpected error listing ./test/empty")
+
 	// Should be able to walk compound paths
 	files, err = lsHandler.list("./test/dir")
 	assert.Equal(t, 1, len(files),
@@ -78,12 +88,6 @@ func TestList(t *testing.T) {
 	assert.Nil(t, err, "Unexpected error listing ./test/dir")
 
 	// Check that the file stats are as expected
-	user, err := user.Current()
-
-	if err != nil {
-		t.Errorf("Failed to get current user")
-	}
-
 	assert.Equal(t,
 		&fileInfo{
 			Name:        "nested",
@@ -94,34 +98,4 @@ func TestList(t *testing.T) {
 		},
 		files[0],
 		"Got malformed file stats")
-}
-
-func setupTestDir() {
-	// Set up a test dir that looks like this:
-	// test
-	//		|- file
-	//		|- .hidden
-	// 		|- dir/
-	// 			|- nested
-	// 		|- hidden_dir/
-	// 			|- nested
-
-	os.Mkdir("./test", os.FileMode(0755))
-	ioutil.WriteFile("./test/file", []byte("test-file"), 0644)
-	ioutil.WriteFile("./test/.hidden", []byte("test-hidden"), 0644)
-
-	// os.Create("./test/.hidden")
-
-	os.Mkdir("./test/dir", os.FileMode(0755))
-	os.Mkdir("./test/.hidden_dir", os.FileMode(0755))
-
-	ioutil.WriteFile("./test/dir/nested", []byte("test-dir-nested"), 0644)
-	ioutil.WriteFile("./test/.hidden_dir/nested", []byte("test-hidden_dir-nested"), 0644)
-
-	fmt.Println("Created test dir")
-}
-
-func cleanupTestDir() {
-	os.RemoveAll("./test")
-	fmt.Println("Removed test dir")
 }

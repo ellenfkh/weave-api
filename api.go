@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -21,19 +22,20 @@ func NewLsHandler(baseDir string) (*LsHandler, error) {
 	}
 
 	if !fi.Mode().IsDir() {
-		return nil, errors.New("BaseDir is a directory")
+		return nil, errors.New("baseDir is not a directory")
 	}
 
 	return &LsHandler{baseDir: baseDir}, nil
-
 }
 
 // Write a 404 and log an error server-side
 func writeError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusNotFound)
+	fmt.Fprintf(w, "{error: %+v}", err)
 	log.Println(err)
 }
 
+// Send requests to cat or list, depending on whether it's a file or dir.
 func (l *LsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	filename := path.Join(l.baseDir, r.RequestURI)
 

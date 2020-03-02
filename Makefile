@@ -8,13 +8,14 @@ build:
 unit: 
 	go test
 
-action:
-	echo argument is $(argument)
+.PHONY: test
+test: build
+	docker run --entrypoint go weave-api:$(SHA) test
 
 .PHONY: run
-run:
+run: build
 	docker run \
-		-v $(baseDir):/files \
+		--mount type=bind,source=$(baseDir),target=/files \
 		-p 8080:8080 \
 		weave-api:$(SHA)  \
 		--baseDir /files --port 8080
